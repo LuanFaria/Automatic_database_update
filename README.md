@@ -8,7 +8,7 @@
     import os
 ~~~
 
-#### EXECUTAR APP_2
+#### EXECUTAR APP_2 (banco genérico criado em localhost)
      REGRAS:
         - O Shapefile FAZENDA precisa ter as colunas "fazenda" e "area_ha";
         - O Shapefile TALHAO precisa ter as colunas "CHAVE" e "area_ha",
