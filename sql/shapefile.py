@@ -48,10 +48,13 @@ def cruza_shp_planilha_perimetro(pasta_saida):
             planilha_df = pd.read_excel(caminho_planilha, sheet_name='FAZENDA')
             geo_df = gpd.read_file(caminho_geojson)
             
+            geo_df['fazenda']= geo_df['FAZENDA']
+            
             # Verifica se as colunas necessárias existem
             if 'cod_fazenda' in planilha_df.columns and 'fazenda' in geo_df.columns:
                 # Converte as colunas 'cod_fazenda' e 'fazenda' para o tipo inteiro
                 planilha_df['cod_fazenda'] = planilha_df['cod_fazenda'].astype(int)
+                
                 geo_df['fazenda'] = geo_df['fazenda'].astype(int)
                 
                 # Faz o merge para obter as colunas 'geometry' e 'area_ha' correspondentes
@@ -105,15 +108,16 @@ def cruza_shp_planilha_bd(pasta_saida):
     if caminho_planilha_bd and caminho_geojson_bd:
         try:
             # Carrega a planilha e o GeoJSON
-            planilha_df = pd.read_excel(caminho_planilha_bd, sheet_name='TALHAO')
+            planilha_df = pd.read_excel(caminho_planilha_bd,  sheet_name='TALHAO')
             geo_df = gpd.read_file(caminho_geojson_bd)
             
             # Verifica se as colunas necessárias existem
             if 'CHAVE' in planilha_df.columns and 'CHAVE' in geo_df.columns:
-                # Converte as colunas 'cod_fazenda' e 'fazenda' para o tipo inteiro
+                #enchendo linguisça
                 planilha_df['CHAVE'] = planilha_df['CHAVE']
                 geo_df['CHAVE'] = geo_df['CHAVE']
-                
+                geo_df['area_ha'] = geo_df['AREA_GIS'] #hoje
+
                 # Faz o merge para obter as colunas 'geometry' e 'area_ha' correspondentes
                 merged_df = planilha_df.merge(
                     geo_df[['CHAVE', 'geometry', 'area_ha']],
@@ -130,7 +134,7 @@ def cruza_shp_planilha_bd(pasta_saida):
                     # Carrega a planilha existente
                     writer.book = load_workbook(caminho_planilha_bd)
                     
-                    # Verifica se a aba 'BD_AGRO' já existe antes de escrever nela
+                    # Verifica se a aba 'TALHAO' já existe antes de escrever nela
                     if 'TALHAO' in writer.book.sheetnames:
                         # Remove a aba existente antes de adicionar os novos dados
                         std = writer.book['TALHAO']
@@ -146,4 +150,5 @@ def cruza_shp_planilha_bd(pasta_saida):
             print(f"Ocorreu um erro ao processar os arquivos: {e}")
     else:
         print("Arquivo de planilha ou GeoJSON 'TALHAO' não encontrado em:", pasta_saida)
+
 
