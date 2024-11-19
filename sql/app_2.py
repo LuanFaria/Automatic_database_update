@@ -4,7 +4,7 @@ from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QFont
 from input_fazenda import adicionar_nome_id, processar_planilha
 from input_polo import obter_ids_nomes
-from input_talhao import att_bd_agro, consultar_estagio, remover_linhas_sem_geometria
+from input_talhao import att_bd_agro, consultar_estagio, remover_linhas_sem_geometria, cruza_planilhas, insere_talhao
 from shapefile import converter_shp_para_geojson, cruza_shp_planilha_perimetro, cruza_shp_planilha_bd
 import os
 
@@ -118,7 +118,7 @@ class App(QWidget):
             font-weight: bold; 
             border-radius: 6px;
         """)
-        self.processar_button2.clicked.connect(lambda: self.start_process(self.att_bd))
+        self.processar_button2.clicked.connect(lambda: self.start_process(self.formatar_bd))
         self.layout.addWidget(self.processar_button2)
 
 
@@ -164,7 +164,6 @@ class App(QWidget):
         converter_shp_para_geojson(pasta_entrada, pasta_saida)
         cruza_shp_planilha_perimetro(pasta_saida)
         cruza_shp_planilha_bd(pasta_saida)
-        
 
 
     def processar_planilha(self):
@@ -176,13 +175,22 @@ class App(QWidget):
         else:
             return "Selecione uma planilha fazenda ou bd_agro."
 
-    def att_bd(self):
+    def formatar_bd(self):
         for planilha in os.listdir(self.caminho_diretorio + '/planilhas'):
-            if planilha.startswith('TALHAO'):
-                self.banco_bd = self.caminho_diretorio + '/planilhas/' + planilha
+            if planilha.startswith('TALHAO'): 
+                if planilha.endswith('xlsx'):
+                    self.banco_bd = self.caminho_diretorio + '/planilhas/' + planilha
+            if planilha.startswith('FAZENDA') and planilha.endswith('xlsx'):
+                if planilha.endswith('xlsx'):
+                    self.banco_fazenda = self.caminho_diretorio + '/planilhas/' + planilha
+                    
         if self.banco_bd:
+            print((self.banco_bd, self.banco_fazenda))
             remover_linhas_sem_geometria(self.banco_bd)
-            return att_bd_agro(self.banco_bd, self.caminho_diretorio + '/planilhas/')  
+            cruza_planilhas(self.banco_bd, self.banco_fazenda)
+            att_bd_agro(self.banco_bd, self.caminho_diretorio + '/planilhas/')  
+            insere_talhao(self.caminho_diretorio + '/planilhas/saida_talhao.xlsx')
+            return 
         else:
             return "Selecione uma planilha fazenda ou bd_agro."
 
