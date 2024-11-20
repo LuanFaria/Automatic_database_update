@@ -2,6 +2,7 @@ import geopandas as gpd
 import os
 import pandas as pd 
 from openpyxl import load_workbook
+from shapely.geometry import Polygon, MultiPolygon
 
 
 def converter_shp_para_geojson(pasta_entrada, pasta_saida):
@@ -151,4 +152,68 @@ def cruza_shp_planilha_bd(pasta_saida):
     else:
         print("Arquivo de planilha ou GeoJSON 'TALHAO' não encontrado em:", pasta_saida)
 
+
+def talhao_fazenda(caminho):
+    
+    """
+    Processa shapefiles no diretório especificado: dissolve pela coluna 'FAZENDA',
+    aplica buffer de 10m, simplifica as geometrias (tolerância de 5m) e remove buracos.
+    Salva os arquivos resultantes no mesmo diretório com o prefixo 'FAZENDA_'.
+
+    Args:
+        caminho (str): Diretório contendo os arquivos shapefile.
+    """
+    for arquivo in os.listdir(caminho):
+        if arquivo.startswith('TALHAO') and arquivo.endswith('.shp'):
+            try:
+                caminho_arquivo = os.path.join(caminho, arquivo)
+                # Lendo o shapefile
+                gdf = gpd.read_file(caminho_arquivo)
+                
+                if 'FAZENDA' not in gdf.columns:
+                    print(f"A coluna 'FAZENDA' não foi encontrada em {arquivo}.")
+                    continue
+                
+                # Dissolver pela coluna 'FAZENDA'
+                gdf_dissolve = gdf.dissolve(by='FAZENDA')
+                
+                # Projeção temporária para métrico
+                utm_crs = gdf_dissolve.estimate_utm_crs()
+                gdf_dissolve = gdf_dissolve.to_crs(utm_crs)
+                
+                # Aplicar buffer de 10 metros
+                gdf_dissolve['geometry'] = gdf_dissolve.buffer(10)
+                
+                # Simplificar geometrias (reduzir vértices) em 5 metros
+                gdf_dissolve['geometry'] = gdf_dissolve.simplify(tolerance=5)
+                
+                # Remover buracos das geometrias
+                def processar_geometria(geom):
+                    if geom.is_empty or geom is None:
+                        return geom
+                    elif isinstance(geom, Polygon):
+                        return Polygon(geom.exterior)  # Remove buracos de Polygon
+                    elif isinstance(geom, MultiPolygon):
+                        # Remove buracos de cada Polygon dentro do MultiPolygon
+                        return MultiPolygon([Polygon(p.exterior) for p in geom.geoms])
+                    else:
+                        return geom
+
+                gdf_dissolve['geometry'] = gdf_dissolve['geometry'].apply(processar_geometria)
+
+                gdf_dissolve['area_ha'] = gdf_dissolve['geometry'].area / 10000
+                
+                # Reprojetar para o CRS original (graus)
+                gdf_dissolve = gdf_dissolve.to_crs(gdf.crs)
+                
+                # Nome do arquivo de saída
+                nome_saida = f"FAZENDA_{arquivo}"
+                caminho_saida = os.path.join(caminho, nome_saida)
+                
+                # Salvando o shapefile processado
+                gdf_dissolve.to_file(caminho_saida)
+                print(f"Arquivo salvo com sucesso: {caminho_saida}")
+            
+            except Exception as e:
+                print(f"Erro ao processar {arquivo}: {e}")
 
