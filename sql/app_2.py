@@ -5,7 +5,7 @@ from PyQt5.QtGui import QFont
 from input_fazenda import adicionar_nome_id, processar_planilha
 from input_polo import obter_ids_nomes
 from input_talhao import att_bd_agro, consultar_estagio, remover_linhas_sem_geometria, cruza_planilhas, insere_talhao
-from shapefile import converter_shp_para_geojson, cruza_shp_planilha_perimetro, cruza_shp_planilha_bd
+from shapefile import converter_shp_para_geojson, cruza_shp_planilha_perimetro, cruza_shp_planilha_bd, talhao_fazenda
 import os
 
 class ProcessingThread(QThread):
@@ -161,6 +161,7 @@ class App(QWidget):
     def shp_para_geojason(self):
         pasta_entrada = self.caminho_diretorio + '/shp'
         pasta_saida = self.caminho_diretorio + '/planilhas'
+        talhao_fazenda(pasta_entrada) 
         converter_shp_para_geojson(pasta_entrada, pasta_saida)
         cruza_shp_planilha_perimetro(pasta_saida)
         cruza_shp_planilha_bd(pasta_saida)
