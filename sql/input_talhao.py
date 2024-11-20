@@ -1,33 +1,50 @@
 import pandas as pd
 import psycopg2
+from io import StringIO
 from input_polo import conectar_banco
 
 
 # Função para consultar o id da tabela 'estagio' usando a coluna 'nome'
-def consultar_estagio(estagio_cliente):
+def consultar_estagio():
+    
     conn = conectar_banco()
-    cur = conn.cursor()
-   
+    if not conn:
+        return {}
+    
     try:
-        # Ajustando a consulta para usar o schema 'ativos' e a tabela 'estagio'
-        query = "SELECT id FROM ativos.estagio WHERE nome = %s"
-        cur.execute(query, (estagio_cliente,))
-        resultado = cur.fetchone()  # Retorna o primeiro resultado
-        return resultado[0] if resultado else None
+        query = "SELECT nome, id FROM ativos.estagio"
+        cur = conn.cursor()
+        cur.execute(query)
+        # Converta os resultados da consulta em um DataFrame
+        buffer = StringIO()
+        buffer.write("nome,id\n")
+        for nome, id_ in cur.fetchall():
+            buffer.write(f"{nome},{id_}\n")
+        buffer.seek(0)
+        estagios_df = pd.read_csv(buffer)
+        return dict(zip(estagios_df['nome'], estagios_df['id']))
     except Exception as e:
-        print(f"Erro ao executar a consulta: {e}")
+        print(f"Erro ao carregar estágios: {e}")
+        return {}
     finally:
-        cur.close()
         conn.close()
 
 # Função principal para processar o arquivo Excel
 def att_bd_agro(caminho_arquivo_excel,saida):
-    # Lendo o arquivo Excel
+
+    # Carrega o mapeamento de estágios {nome: id}
+    estagios_dict = consultar_estagio()
+
     print('\nProcessando TALHAO!')
+    # Lê o arquivo Excel
     df = pd.read_excel(caminho_arquivo_excel)
     
-    # Criando a coluna 'estagio_id' e preenchendo-a com os ids encontrados no banco
-    df['estagio_id'] = df['ESTAGIO'].apply(lambda estagio: consultar_estagio(estagio))
+    estagio_ids = []
+    for estagio in df['ESTAGIO']:
+        estagio_id = estagios_dict.get(estagio, -1)  # Usa -1 como valor padrão para estagios não encontrados
+        estagio_ids.append(estagio_id)
+
+    df['estagio_id'] = estagio_ids
     
     # Convertendo os nomes das colunas para minúsculas
     df.columns = df.columns.str.lower()
