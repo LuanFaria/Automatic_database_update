@@ -5,12 +5,14 @@
     from PyQt5.QtGui import QFont
     import psycopg2
     import pandas as pd
+    from openpyxl import load_workbook
     import os
+    from io import StringIO
+    from shapely.geometry import Polygon, MultiPolygon
 
 #### EXECUTAR
     REGRAS:
-        - O Shapefile FAZENDA precisa ter as colunas "FAZENDA" e "area_ha";
-        - O Shapefile TALHAO precisa ter as colunas "CHAVE" e "AREA_GIS",
+        - O Shapefile TALHAO precisa ter as colunas "CHAVE", "AREA_GIS" e "FAZENDA",
         - A planilha FAZENDA precisa ser preenchida a mão (todos os campos - exceto fazenda_id que é gerada no banco e geometria que sera importada do shp ),
         - A planilha TALHAO precisa estar no formado BD_AGRO,
         - As planilhas devem estar armazenadas na pasta chamada "planilhas",
@@ -28,11 +30,11 @@
     - Clicar em Adicionar.
 
 #### ATUALIZAR SHAPEFILE
-- Dissolve por FAZENDA,
-- Buffer de 10m = 0,0001,
-- Simplificar para reduzir numero de vertice (5m em graus = 0,00005),
-- Excluir buracos,
-- 
+    - Dissolve por FAZENDA,
+    - Buffer de 10m = 0,0001,
+    - Simplificar para reduzir numero de vertice (5m em graus = 0,00005),
+    - Excluir buracos,
+    - Salva com o prefixo FAZENDA
     - Converte arquivo .shp em geojson,
     - Cruza o geojson FAZENDA com a planilha fazenda, e copia a geometria e area_ha (é preciso que tenha a coluna cod_fazenda no excel e no shp),
     - Cruza o geojson TALHAO com o BD_AGRO, e copia a geometria e area_ha (é preciso que tenha a coluna CHAVE, tanto no shp quanto no excel),
@@ -44,14 +46,15 @@
 
 #### ATUALIZAR TALHAO (input_talhao)
     - Conecta no banco,
-    - Rouba os valores do estagio_id,
+    - Rouba os valores do estagio_id (criei um dicionario para, ao inves de bater linha por linha no banco),
     - Trata o TALHAO que esta no formato BD_AGRO para o formato do banco,
     - Remove Linhas Sem geometria,
     - Cruza com a planilha fazenda (id = fazenda e cod_fazenda) - Pega as colunas - cliente_id, polo_id e fazenda_id,
     - Verifica se os dados ja existem no banco,
     - Sobre a planilha talhao,
     - Produto_id para o ATIVOS é = 4;
-- Variedade_id.
+- Variedade_id,
+- Safra Talhao.
 
 
 #### APP
